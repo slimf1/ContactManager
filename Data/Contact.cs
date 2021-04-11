@@ -29,7 +29,7 @@ namespace Data
             get => _email;
             set 
             {
-                if (!EMAIL_REGEX.IsMatch(value))
+                if (value != null && !EMAIL_REGEX.IsMatch(value))
                     throw new ArgumentException("L'adresse email n'est pas valide");
                 _email = value;
             } 

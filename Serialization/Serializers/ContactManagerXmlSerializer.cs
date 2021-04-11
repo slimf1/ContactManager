@@ -8,30 +8,19 @@ namespace Serialization.Serializers
 {
     public class ContactManagerXmlSerializer : IContactManagerSerializer
     {
+        private static readonly XmlSerializer XML_SERIALIZER = new XmlSerializer(
+            typeof(ContactManager), 
+            new Type[] { typeof(Folder), typeof(Contact) }
+        );
+
         public ContactManager Deserialize(Stream stream)
         {
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(ContactManager), new Type[] { typeof(Folder), typeof(Contact) });
-            ContactManager contactManager = null;
-            try
-            {
-                contactManager = (ContactManager)xmlSerializer.Deserialize(stream);
-            } catch (SerializationException e)
-            {
-                Console.Error.WriteLine($"Erreur lors de la deserialisation XML: {e.Message}");
-            }
-            return contactManager;
+            return (ContactManager)XML_SERIALIZER.Deserialize(stream);
         }
 
         public void Serialize(Stream stream, ContactManager manager)
         {
-            try
-            {
-                XmlSerializer xmlSerializer = new XmlSerializer(typeof(ContactManager), new Type[] { typeof(Folder), typeof(Contact) });
-                xmlSerializer.Serialize(stream, manager);
-            } catch (SerializationException e)
-            {
-                Console.Error.WriteLine($"Erreur lors de la serialisation XML: {e.Message}");
-            }
+            XML_SERIALIZER.Serialize(stream, manager);
         }
     }
 }

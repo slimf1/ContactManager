@@ -5,18 +5,24 @@ using Data;
 using Serialization;
 using System.IO;
 using System.Security.Cryptography;
+using System.Runtime.Serialization;
 
 namespace ContactManagerApplication
 {
     class ConsoleUi
     {
+        private const int MAX_PASSWORD_TRIES = 3;
+        private const string DEFAULT_SERIALIZATION_TYPE = "XML";
+
         private ContactManager _contactManager;
         private int _passwordTries;
+        private string _serializationType;
 
         public ConsoleUi()
         {
             _contactManager = new ContactManager();
             _passwordTries = 0;
+            _serializationType = DEFAULT_SERIALIZATION_TYPE;
         }
 
         private void ShowIntroduction()
@@ -63,17 +69,11 @@ namespace ContactManagerApplication
                     break;
 
                 case "enregistrer":
-                    if (arguments.Length == 0)
-                        Console.WriteLine("Veuillez indiquer un format de serialisation (xml, binary)");
-                    else
-                        SaveToFile(arguments[0]);
+                    SaveToFile(_serializationType);
                     break;
 
                 case "charger":
-                    if (arguments.Length == 0)
-                        Console.WriteLine("Veuillez indiquer un format de serialisation (xml, binary)");
-                    else
-                        LoadFromFile(arguments[0]);
+                    LoadFromFile(_serializationType);
                     break;
 
                 case "ajouterdossier":
@@ -104,6 +104,16 @@ namespace ContactManagerApplication
                         Console.WriteLine("Syntaxe incorrecte. Utilisez: cd chemin. Par exemple: cd ../../dossier1/mondossier");
                     else
                         _contactManager.ChangeDirectory(arguments[0]);
+                    break;
+
+                case "typeserialisation":
+                    if (arguments.Length == 0)
+                        Console.WriteLine("Syntaxe incorrecte. Utilisez: typeserialisation type. Par exemple: typeserialisation xml");
+                    else
+                    {
+                        _serializationType = arguments[0];
+                        Console.WriteLine($"Le type de serialisation utilisé a été modifié en: {_serializationType}");
+                    } // CHECK SI EXISTE COMME TYPE
                     break;
 
                 case "sortir":
@@ -148,7 +158,7 @@ namespace ContactManagerApplication
                     }
                 }
             }
-            catch (Exception e)
+            catch (SerializationException e)
             {
                 Console.WriteLine($"Erreur de sauvegarde: {e.Message}");
             }
@@ -157,6 +167,13 @@ namespace ContactManagerApplication
         private void LoadFromFile(string serializationMethod)
         {
             string filePath = GetFilePath();
+
+            if (!File.Exists(filePath))
+            {
+                Console.Error.WriteLine("Le fichier de base n'existe pas.");
+                return;
+            }
+
             IContactManagerSerializer deserializer = SerializerFactory.Create(serializationMethod);
             Console.WriteLine("Entrez le mot de passe :");
             string password = Console.ReadLine();
@@ -172,12 +189,24 @@ namespace ContactManagerApplication
                         _contactManager.RemakeTree(_contactManager.RootFolder);
                         _contactManager.CurrentFolder = _contactManager.RootFolder;
                         Console.WriteLine($"Contacts chargés depuis: \"{filePath}\"");
+                        _passwordTries = 0;
                     }
                 }
             }
-            catch (Exception e)
+            // FAIRE GAFFE EXCEPTIONS QUI STOP LE PROGRAMME, CF SUJET
+            catch (Exception e) when (
+            e is SerializationException ||
+            e is CryptographicException)// Gestion de la serialisation : si mdp mauvais => exception depend de la serialisation (expliquer dans le mail) => ce que j'ai fait !! 
+            // catch des deux exceptions, fixe le type de seria utilisé ?
             {
-                Console.WriteLine($"Erreur de chargement: {e.Message}");
+                Console.Error.WriteLine($"Le chargement a échoué: Le mot de passe est incorrect.\n" +
+                    $"Nombre d'essais: {++_passwordTries}, Essais restants: {MAX_PASSWORD_TRIES - _passwordTries}");
+                if (_passwordTries >= MAX_PASSWORD_TRIES)
+                {
+                    Console.Error.WriteLine("Le nombre d'essais maximum a été dépassé. Le fichier va être supprimé.");
+                    File.Delete(filePath);
+                    _passwordTries = 0;
+                }
             }
         }
         private void AddContactCommand(string[] arguments)

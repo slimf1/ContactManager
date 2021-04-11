@@ -8,30 +8,16 @@ namespace Serialization.Serializers
 {
     public class ContactManagerBinarySerializer : IContactManagerSerializer
     {
-        public ContactManager Deserialize(Stream stream) // 4x => /2 si lors de l'appel
+        private static readonly BinaryFormatter BINARY_FORMATTER = new BinaryFormatter();
+
+        public ContactManager Deserialize(Stream stream) 
         {
-            ContactManager contactManager = null;
-            try
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-                contactManager = (ContactManager) formatter.Deserialize(stream);
-            } catch (SerializationException e)
-            {
-                Console.Error.WriteLine($"La serialization binaire a échouée: {e.Message}");
-            }
-            return contactManager;
+            return (ContactManager)BINARY_FORMATTER.Deserialize(stream);
         }
 
         public void Serialize(Stream stream, ContactManager manager)
         {
-            try
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-                formatter.Serialize(stream, manager);
-            } catch(SerializationException e)
-            {
-                Console.Error.WriteLine($"La serialization binaire a échouée: {e.Message}");
-            }
+            BINARY_FORMATTER.Serialize(stream, manager);
         }
     }
 }
