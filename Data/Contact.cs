@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml.Serialization;
 
 namespace Data
 {
+    /// <summary>
+    /// Représentation d'un contact.
+    /// </summary>
     [Serializable]
     public class Contact : Element
     {
@@ -14,6 +14,9 @@ namespace Data
         /// </summary>
         private static readonly Regex EMAIL_REGEX = new Regex(@"^\w+(?:\.\w+)*@\w+(?:\.\w+)*\.[A-Za-z]{2,}$");
 
+        /// <summary>
+        /// Adresse email
+        /// </summary>
         private string _email;
 
         /// <summary>
@@ -33,7 +36,7 @@ namespace Data
                     throw new ArgumentException("L'adresse email n'est pas valide");
                 _email = value;
             } 
-        } // => faire un ismatch regex dans le setter
+        }
 
         /// <summary>
         /// L'entreprise du contact
@@ -79,6 +82,44 @@ namespace Data
         {
             return $"[C] {Name}, {FirstName} ({Company}), " +
                 $"Email: {Email}, Link: {ContactLink} ";
+        }
+
+        /// <summary>
+        /// Teste l'égalité entre deux contacts.
+        /// </summary>
+        /// <param name="obj">La deuxième opérande.</param>
+        /// <returns>Vrai si les deux contacts son égaux, faux sinon.</returns>
+        public override bool Equals(object obj)
+        {
+            return obj is Contact contact &&
+                   base.Equals(obj) &&
+                   Name == contact.Name &&
+                   CreationDate == contact.CreationDate &&
+                   LastModificationDate == contact.LastModificationDate &&
+                   _email == contact._email &&
+                   FirstName == contact.FirstName &&
+                   Email == contact.Email &&
+                   Company == contact.Company &&
+                   ContactLink == contact.ContactLink;
+        }
+
+        /// <summary>
+        /// Valeur de hachage d'un contact.
+        /// </summary>
+        /// <returns>Le hash d'un contact.</returns>
+        public override int GetHashCode()
+        {
+            HashCode hash = new HashCode();
+            hash.Add(base.GetHashCode());
+            hash.Add(Name);
+            hash.Add(CreationDate);
+            hash.Add(LastModificationDate);
+            hash.Add(_email);
+            hash.Add(FirstName);
+            hash.Add(Email);
+            hash.Add(Company);
+            hash.Add(ContactLink);
+            return hash.ToHashCode();
         }
     }
 }

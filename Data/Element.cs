@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Xml.Serialization;
 
 namespace Data
@@ -49,13 +47,10 @@ namespace Data
         }
 
         /// <summary>
-        /// Met à jour la date de dernière modification.
+        /// Teste l'égalité entre deux éléments.
         /// </summary>
-        public void Touch()
-        {
-            LastModificationDate = DateTime.Now;
-        }
-
+        /// <param name="obj">La deuxième opérande.</param>
+        /// <returns>Vrai si les deux éléments sont égaux.</returns>
         public override bool Equals(object obj)
         {
             return obj is Element element &&
@@ -64,6 +59,10 @@ namespace Data
                    LastModificationDate == element.LastModificationDate;
         }
 
+        /// <summary>
+        /// Code de hachage d'un élément.
+        /// </summary>
+        /// <returns>Le hashcode d'un élément.</returns>
         public override int GetHashCode()
         {
             return HashCode.Combine(Name, CreationDate, LastModificationDate);

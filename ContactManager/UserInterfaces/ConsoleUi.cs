@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Data;
 using Serialization;
@@ -9,15 +8,37 @@ using System.Runtime.Serialization;
 
 namespace ContactManagerApplication
 {
+    /// <summary>
+    /// Interface utilisateur console pour l'utilisation d'un <see cref="ContactManager"/>.
+    /// </summary>
     class ConsoleUi
     {
+        /// <summary>
+        /// Essais maximum d'un mdp erroné 
+        /// </summary>
         private const int MAX_PASSWORD_TRIES = 3;
+        
+        /// <summary>
+        /// Le format de sérialisation par défaut
+        /// </summary>
         private const string DEFAULT_SERIALIZATION_TYPE = "XML";
 
+        /// <summary>
+        /// L'instance courante du manager de contact
+        /// </summary>
         private ContactManager _contactManager;
+        /// <summary>
+        /// Le nombre d'essais courants pour les mdp erronés
+        /// </summary>
         private int _passwordTries;
+        /// <summary>
+        /// Le type de sérialisation utilisé.
+        /// </summary>
         private string _serializationType;
 
+        /// <summary>
+        /// Constructeur d'un <see cref="ConsoleUi"/>.
+        /// </summary>
         public ConsoleUi()
         {
             _contactManager = new ContactManager();
@@ -25,6 +46,9 @@ namespace ContactManagerApplication
             _serializationType = DEFAULT_SERIALIZATION_TYPE;
         }
 
+        /// <summary>
+        /// Affiche l'introduction en console.
+        /// </summary>
         private void ShowIntroduction()
         {
             Console.WriteLine(
@@ -40,31 +64,38 @@ namespace ContactManagerApplication
                 "=============================");
         }
 
-        private void ShowHelp() // Todo toutes les commandes + ERREURS !s
+        /// <summary>
+        /// Affiche la liste des commandes.
+        /// </summary>
+        private void ShowHelp()
         {
             Console.WriteLine("Help: \n" +
                 "afficher - Affiche la structure\n" +
+                "enregistrer - Enregistre la session\n" +
+                "charger - Charge une session\n" +
                 "ajouterdossier [nom] - Ajoute un sous-dossier au dossier courant\n" +
                 "ajoutercontact [nom] [prenom] [email] [entr] [lien] - Ajoute un contact au dossier courant\n" +
-                "cd [chemin] - Change le dossier courant\n" + // Delete !!! DeleteContact
+                "cd [chemin] - Change le dossier courant\n" +
+                "typeserialisation [type] - Change le type de la sérialisation\n" + 
                 "sortir - Stoppe l'exécution du programme\n");
         }
 
+        /// <summary>
+        /// Lit et interprète la commande de l'utilisateur.
+        /// </summary>
+        /// <returns>Un booléen qui indique si l'utilisateur continue l'exécution.</returns>
         private bool ParseAnswer()
         {
             Console.ForegroundColor = ConsoleColor.Green;
-            //Console.Write(">");
             Console.Write(_contactManager.GetPrompt());
             Console.ResetColor();
             string userResponse = Console.ReadLine();
-            // Sub methodes ??
             string command = userResponse.Split(" ")[0];
             string[] arguments = userResponse.Split(" ").Skip(1).ToArray();
 
-            switch (command) // Gestion erreurs ! + Methodes pour args
-            { // Faire fichier "console ui" + faire une itf graph ?
-              //Tout mettre sur github et faire un readme 
-                case "afficher": // Dire dans le cr (mail) que ça s'applique bien a une appli winform et pk 
+            switch (command)
+            { 
+                case "afficher":
                     Console.WriteLine(_contactManager);
                     break;
 
@@ -86,16 +117,21 @@ namespace ContactManagerApplication
 
                 case "ajoutercontact":
                 case "addcontact":
-                    // Et si parsing fail ? et si nb args invalide ??
-                    // TODO
                     if (arguments.Length < 5)
                         Console.WriteLine("Syntaxe incorrecte. Utilisez: ajoutercontact nom prenom email entreprise lien");
                     else 
                     {
-                        if (_contactManager.AddContact(arguments[0], arguments[1], arguments[2], arguments[3], (Link)Enum.Parse(typeof(Link), arguments[4])))
-                            Console.WriteLine("Contact ajouté");
-                        else
-                            Console.Error.WriteLine("Format de l'email invalide");
+                        try
+                        {
+                            if (_contactManager.AddContact(arguments[0], arguments[1], arguments[2], arguments[3], (Link)Enum.Parse(typeof(Link), arguments[4])))
+                                Console.WriteLine("Contact ajouté");
+                            else
+                                Console.Error.WriteLine("Format de l'email invalide");
+                        } 
+                        catch(ArgumentException e)
+                        {
+                            Console.Error.WriteLine($"Ajout du contact impossible: {e.Message}");
+                        }
                     }
                     break;
 
@@ -113,7 +149,7 @@ namespace ContactManagerApplication
                     {
                         _serializationType = arguments[0];
                         Console.WriteLine($"Le type de serialisation utilisé a été modifié en: {_serializationType}");
-                    } // CHECK SI EXISTE COMME TYPE
+                    }
                     break;
 
                 case "sortir":
@@ -132,12 +168,21 @@ namespace ContactManagerApplication
             return true;
         }
 
+        /// <summary>
+        /// Chemin du fichier de sauvegarde de la base.
+        /// </summary>
+        /// <returns>Le fichier où est sauvegardé l'instance sérialisée du contact manager.</returns>
         private static string GetFilePath()
         {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                 $"{Environment.UserName}_ContactManager.db");
         }
         
+        /// <summary>
+        /// Sauvegarde l'instance du manager de contact en utilisant la méthode de
+        /// sérialisation spécifiée.
+        /// </summary>
+        /// <param name="serialisationMethod">La méthode de sérialisation à utiliser pour la sérialisation.</param>
         private void SaveToFile(string serialisationMethod)
         {
             string filePath = GetFilePath();
@@ -146,9 +191,9 @@ namespace ContactManagerApplication
 
             byte[] encryptionKey = ContactManagerCryptography.GetKeyFromPassword(password);
 
-            IContactManagerSerializer serializer = SerializerFactory.Create(serialisationMethod);
             try
             {
+                IContactManagerSerializer serializer = SerializerFactory.Create(serialisationMethod);
                 using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
                 {
                     using (CryptoStream cryptoStream = ContactManagerCryptography.EncryptionStream(encryptionKey, fileStream))
@@ -162,9 +207,17 @@ namespace ContactManagerApplication
             {
                 Console.WriteLine($"Erreur de sauvegarde: {e.Message}");
             }
+            catch (ArgumentException)
+            {
+                Console.WriteLine("Type de sérialisation invalide.");
+            }
         }
 
-        private void LoadFromFile(string serializationMethod)
+        /// <summary>
+        /// Charge une instance du manager de contact.
+        /// </summary>
+        /// <param name="deserializationMethod">La méthode de déserialisation à utiliser</param>
+        private void LoadFromFile(string deserializationMethod)
         {
             string filePath = GetFilePath();
 
@@ -174,13 +227,13 @@ namespace ContactManagerApplication
                 return;
             }
 
-            IContactManagerSerializer deserializer = SerializerFactory.Create(serializationMethod);
             Console.WriteLine("Entrez le mot de passe :");
             string password = Console.ReadLine();
             byte[] decryptionKey = ContactManagerCryptography.GetKeyFromPassword(password);
 
             try
             {
+                IContactManagerSerializer deserializer = SerializerFactory.Create(deserializationMethod);
                 using (FileStream fileStream = new FileStream(filePath, FileMode.Open))
                 {
                     using (CryptoStream cryptoStream = ContactManagerCryptography.DecryptionStream(decryptionKey, fileStream))
@@ -193,11 +246,9 @@ namespace ContactManagerApplication
                     }
                 }
             }
-            // FAIRE GAFFE EXCEPTIONS QUI STOP LE PROGRAMME, CF SUJET
             catch (Exception e) when (
             e is SerializationException ||
-            e is CryptographicException)// Gestion de la serialisation : si mdp mauvais => exception depend de la serialisation (expliquer dans le mail) => ce que j'ai fait !! 
-            // catch des deux exceptions, fixe le type de seria utilisé ?
+            e is CryptographicException)
             {
                 Console.Error.WriteLine($"Le chargement a échoué: Le mot de passe est incorrect.\n" +
                     $"Nombre d'essais: {++_passwordTries}, Essais restants: {MAX_PASSWORD_TRIES - _passwordTries}");
@@ -207,33 +258,23 @@ namespace ContactManagerApplication
                     File.Delete(filePath);
                     _passwordTries = 0;
                 }
-            }
-        }
-        private void AddContactCommand(string[] arguments)
-        {
-            if (arguments.Length == 5)
+            } catch(ArgumentException)
             {
-
+                Console.WriteLine("Type de sérialisation invalide");
             }
         }
 
-        public void DisplayMenu() // gestion errerus 
+        /// <summary>
+        /// Main loop de l'interface console.
+        /// </summary>
+        public void DisplayMenu()  
         {
             ShowIntroduction();
-            bool keep = true;
+            bool keep;
             do
             {
-                try
-                {
-                    keep = ParseAnswer();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Une erreur est survenue: {e.Message}");
-                }
+                keep = ParseAnswer();
             } while (keep);
         }
     }
-
-
 }

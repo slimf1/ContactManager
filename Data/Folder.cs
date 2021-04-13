@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Xml.Serialization;
 
@@ -123,6 +121,11 @@ namespace Data
             return builder.ToString();
         }
 
+        /// <summary>
+        /// Teste l'égalité entre deux dossiers.
+        /// </summary>
+        /// <param name="obj">La deuxième opérande.</param>
+        /// <returns>Vrai si les deux dossiers sont égaux, faux sinon.</returns>
         public override bool Equals(object obj)
         {
             return obj is Folder folder &&
@@ -130,12 +133,17 @@ namespace Data
                    Name == folder.Name &&
                    CreationDate == folder.CreationDate &&
                    LastModificationDate == folder.LastModificationDate &&
-                   EqualityComparer<List<Element>>.Default.Equals(Elements, folder.Elements);
+                   EqualityComparer<List<Element>>.Default.Equals(Elements, folder.Elements) &&
+                   EqualityComparer<Folder>.Default.Equals(Parent, folder.Parent);
         }
 
+        /// <summary>
+        /// Le code de hachage du dossier.
+        /// </summary>
+        /// <returns>Le hashcode d'un dossier.</returns>
         public override int GetHashCode()
         {
-            return HashCode.Combine(base.GetHashCode(), Name, CreationDate, LastModificationDate, Elements);
+            return HashCode.Combine(base.GetHashCode(), Name, CreationDate, LastModificationDate, Elements, Parent);
         }
     }
 }

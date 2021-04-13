@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 
 namespace Data
 {
+    /// <summary>
+    /// Instance du manager de contact
+    /// </summary>
     [XmlRoot("ContactManager")]
     [Serializable]
     [XmlInclude(typeof(Folder)), XmlInclude(typeof(Contact))]
@@ -69,10 +70,18 @@ namespace Data
         /// <returns>Vrai si le dossier a effectivement été ajouté, faux sinon</returns>
         public bool AddFolder(string folderName)
         {
-            Folder newFolder = new Folder(folderName, _currentFolder);
-            _currentFolder.Add(newFolder);
-            _currentFolder = newFolder;
-            return true; // Gérer les erreurs !!
+            Element element = _currentFolder.Find(folderName);
+            if (element != null && element is Folder)
+            {
+                return false;
+            } 
+            else 
+            {
+                Folder newFolder = new Folder(folderName, _currentFolder);
+                _currentFolder.Add(newFolder);
+                _currentFolder = newFolder;
+                return true;
+            }
         }
 
         /// <summary>

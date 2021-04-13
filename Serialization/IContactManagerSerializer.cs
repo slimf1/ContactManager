@@ -1,5 +1,4 @@
 ﻿using Data;
-using System.Collections;
 using System.IO;
 
 namespace Serialization
